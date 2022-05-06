@@ -3,6 +3,7 @@ const cors = require("cors");
 const app = express();
 var morgan = require('morgan');
 
+app.use(express.static('build'))
 app.use(cors());
 app.use(express.json());
 morgan.token('body', (req, res) => JSON.stringify(req.body));
@@ -85,6 +86,6 @@ const generateId = () => {
   return maxId + 1
 }
 
-const PORT = 3002;
+const PORT = process.env.PORT || 3002
 app.listen(PORT);
 console.log(`Server is running on port ${PORT}`);
