@@ -28,6 +28,8 @@ app.get("/info", (request, response, error) => {
     .catch(error => next(error))
 });
 
+
+// GET ALL
 app.get("/api/persons", (request, response, next) => {
   Person.find({})
   .then((persons) => {
@@ -38,6 +40,7 @@ app.get("/api/persons", (request, response, next) => {
   .catch(error => next(error));
 });
 
+// GET ONE
 app.get("/api/persons/:id", (request, response, next) => {
   Person.findById(request.params.id)
     .then(person => {
@@ -48,6 +51,7 @@ app.get("/api/persons/:id", (request, response, next) => {
     .catch(error => next(error))
 });
 
+// SAVE
 app.post("/api/persons", (request, response, next) => {
   const person = new Person({
     name: request.body.name,
@@ -65,56 +69,62 @@ app.post("/api/persons", (request, response, next) => {
     if(person) return response.status(400).json({error: "This number is already registered"})
   })
 
-  person.save().then((newPerson) => {
-    response.json(newPerson);
-    // mongoose.connection.close();
-  });
+  person.save()
+    .then((newPerson) => {
+      response.json(newPerson);
+      // mongoose.connection.close();
+    })
+    .catch(error => next(error));
 });
 
+// DELETE 
 app.delete("/api/persons/:id", (request, response, next) => {
   Person.findByIdAndRemove(request.params.id)
-    .then(result => {
-      response.status(204).end()
-    })
+    .then(result => response.status(204).end())
     .catch(error => {
       console.log(error)
       next(error)
     })
 });
 
+// UPDATE
 app.put("/api/persons/:id", (request, response, next) => {
   const person = {
     name: request.body.name,
     number: request.body.number,
   };
 
-  Person.findByIdAndUpdate(request.params.id, person, {new: true})
+  Person.findByIdAndUpdate(request.params.id, person, { new: true, runValidators: true, context: 'query' })
     .then(updatedPerson => response.json(updatedPerson))
     .catch(error => next(error))
 })
 
 
 // MIDLEWARES 
-
 const unknownEndpoint = (request, response) => {
   response.status(404).send({ error: 'unknown endpoint' })
 }
 
 app.use(unknownEndpoint)
 
+// ERROR HANDLER
 const errorHandler = (error, request, response, next) => {
   console.error(`${error.name}: ${error.message}`)
   if (error.name === 'CastError') {
-    return response.status(400).send({ error: `${error.message}` })
+    return response.status(400).send({ error: error.message })
   } 
   if (error.name === 'ObjectParameterError') {
-    return response.status(400).send({ error: `${error.message}` })
+    return response.status(400).send({ error: error.message })
   } 
+  if (error.name === 'ValidationError') {
+    return response.status(400).json({ error: error.message })
+  }
   next(error)
 }
 
 app.use(errorHandler)
 
+// START APP
 const PORT = process.env.PORT;
 app.listen(PORT);
 console.log(`Server is running on port ${PORT}`);
